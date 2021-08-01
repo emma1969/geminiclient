@@ -7,15 +7,18 @@
 
 module Gemini
   class GeminiClient
-    attr_accessor :tofu_db, :document, :ssl_contexts, :sockets, :certs, :ca_file_path
+    attr_accessor :tofu_db, :document, :ssl_context, :socket, :cert, :ca_file_path, :use_tofu
     
-    def initialize(tofu_path='/root/.gemini/tofudb.yml')
-      #self.ssl_context = OpenSSL::SSL::SSLContext.new
-      #self.ca_file_path = ca_file_path
-      self.sockets = []
-      self.ssl_contexts = []
-      self.certs = []
+    def initialize(tofu_path='/root/.gemini/tofudb.yml', use_tofu=true)
+      self.ssl_context = OpenSSL::SSL::SSLContext.new
+      self.use_tofu = use_tofu
+      if use_tofu
+        self.ssl_context.verify_mode = OpenSSL::SSL::VERIFY_NONE
+      end
+      self.socket = nil
+      self.cert = nil
       self.tofu_db = Gemini::TofuDB.new tofu_path
+      self.use_tofu
     end
     
     
@@ -40,14 +43,7 @@ module Gemini
       return true
     end
     
-    def create_ssl_context
-      posistion = self.ssl_contexts.size
-      self.ssl_contexts[posistion] = OpenSSL::SSL::SSLContext.new
-      #self.ssl_contexts[posistion].ca_file = self.ca_file_path
-      return posistion
-    end
-    
-    def generate_client_key(socket, dc, cn)
+    def generate_client_key( dc, cn)
       key = OpenSSL::PKey::RSA.new 2048
       cert = OpenSSL::X509::Certificate.new
       cert.version = 2
@@ -70,60 +66,33 @@ module Gemini
       
     end
     
-    def send_input(site_path, input_data, socket)
+    def send_input(site_path, input_data)
       ready_input = URI.encode_www_form_component(input_data).gsub('+','%20')
-      return self.send_request site_path + '?' + ready_input, socket
+      return self.send_request site_path + '?' + ready_input
     end
     
     def establish_connection(uri, port)
-      socket = TCPSocket.new(uri, port)
-      ssl_context = create_ssl_context
-      ssl_socket = OpenSSL::SSL::SSLSocket.new(socket, self.ssl_contexts[ssl_context])
-      ssl_socket.connect
-      cert = ssl_socket.peer_cert
-      subjectbits = cert.subject.to_s.split('/').reject { |mstr| mstr.empty? }.map { |nstr| nstr.split('=') }.to_h
-      issuerbits = cert.issuer.to_s.split('/').reject { |mstr| mstr.empty? }.map { |nstr| nstr.split('=') }.to_h
-      if subjectbits['CN'] == issuerbits['CN']
-        puts 'in tofu part'
-        indb = self.tofu_db.check_tofu(uri, cert)
-        if indb
-          success = true
-          puts 'indb'
+      tcp_socket = TCPSocket.new(uri, port)
+      self.socket = OpenSSL::SSL::SSLSocket.new(tcp_socket, self.ssl_context)
+      self.socket.connect
+      cert = self.socket.peer_cert
+      if use_tofu
+        if self.tofu_db.check_cert(uri,cert, self.socket)
+          self.cert = self.socket.peer_cert
+          return true
         else
-          puts 'adding to db'
-          success = self.tofu_db.add_tofu(uri, cert)
-        end
-        if success
-          status = 'accepted by tofudb'
-        else
-          status = 'rejected by tofudb'
-        end
-      else
-        verify_result = ssl_socket.verify_result
-        if verify_result == 0
-          success = true
-        else
-          status = 'check openssl verify(1)' 
-          success = false
+          puts 'SSL Error'
+          return false
         end
       end
-      if success
-        self.certs.append(ssl_socket.peer_cert)
-        self.sockets.append(ssl_socket)
-        socketn = self.sockets.size-1
-        puts status
-      else
-        puts 'SSL Error'
-        puts status
-      end
-      return success, socketn
+      return true
     end
     
-    def send_request(uri, socketn)
+    def send_request(uri)
       ## check ssl contexts, for sockets and urls
-      self.sockets[socketn].connect()
-      self.sockets[socketn].puts "gemini://#{uri}\r\n"
-      data = self.sockets[socketn].readlines
+      self.socket.connect()
+      self.socket.puts "gemini://#{uri}\r\n"
+      data = self.socket.readlines
       header = data.slice!(0)
       content = data
       return header, content
@@ -131,21 +100,21 @@ module Gemini
     
     
     def grab_gemsite(uri, path, port)
-      status, socket = self.establish_connection( uri.chomp('/'), port )
+      status = self.establish_connection( uri.chomp('/'), port )
       if status
         if path == '/'
           path = File.join(uri,path)
         end
-        return self._grab(path, socket)
+        return self._grab(path)
       else
-        return {"data": "connection failed"}
+        return {"data": ["connection failed"]}
       end
     end
     
     
-    def _grab( fulluri, socket)
+    def _grab( fulluri)
       content = {}
-      content[:header], content[:data] = self.send_request("#{fulluri}", socket)
+      content[:header], content[:data] = self.send_request("#{fulluri}")
       check = content[:header].split(' ')
       status = check[0].to_i
       data = check[1]
@@ -154,7 +123,7 @@ module Gemini
       when 20..29
         return content
       when 30..31
-        return self._grab(data, socket)
+        return self._grab(data)
       else
         puts content[:data]
         puts content[:header]
