@@ -91,7 +91,7 @@ module Gemini
     def send_request(uri)
       ## check ssl contexts, for sockets and urls
       self.socket.connect()
-      self.socket.puts "gemini://#{uri}\r\n"
+      self.socket.puts "gemini://#{uri}/\r\n"
       data = self.socket.readlines
       header = data.slice!(0)
       content = data
@@ -102,9 +102,7 @@ module Gemini
     def grab_gemsite(uri, path, port)
       status = self.establish_connection( uri.chomp('/'), port )
       if status
-        if path == '/'
-          path = File.join(uri,path)
-        end
+        path = uri+'/'+path
         return self._grab(path)
       else
         return {"data": ["connection failed"]}
@@ -115,19 +113,20 @@ module Gemini
     def _grab( fulluri)
       content = {}
       content[:header], content[:data] = self.send_request("#{fulluri}")
-      check = content[:header].split(' ')
-      status = check[0].to_i
-      data = check[1]
-      puts fulluri
+      begin 
+        check = content[:header].split(' ')
+        status = check[0].to_i
+        data = check[1].chomp
+      rescue
+        status = 0
+      end
       case status
       when 20..29
         return content
       when 30..31
         return self._grab(data)
       else
-        puts content[:data]
-        puts content[:header]
-        content[:data] = "ERROR"
+        content[:data] = ["ERROR"]
       end
       return content
     end
@@ -187,9 +186,6 @@ module Gemini
         end
       end
       return header_hash
-    end
-    
-    def process_gemini(content)
     end
   end
 end
