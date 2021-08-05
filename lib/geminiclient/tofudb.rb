@@ -35,7 +35,10 @@ module Gemini
     def check_cert(uri, cert, ssl_socket)
       subjectbits = cert.subject.to_s.split('/').reject { |mstr| mstr.empty? }.map { |nstr| nstr.split('=') }.to_h
       issuerbits = cert.issuer.to_s.split('/').reject { |mstr| mstr.empty? }.map { |nstr| nstr.split('=') }.to_h
-      if subjectbits['CN'] == issuerbits['CN']
+      verify_res = ssl_socket.verify_result
+      success = false
+      if (verify_res == 18 || verify_res == 19) || verify_res == 0
+        puts ssl_socket.verify_result
         puts "Subject #{subjectbits['CN']}"
         puts "Issuer #{issuerbits['CN']}"
         indb = self.check_tofu(uri, cert)
@@ -52,18 +55,8 @@ module Gemini
         else
           status = 'rejected by tofudb'
         end
-      else
-        verify_result = ssl_socket.verify_result
-        if verify_result == 0
-          success = true
-        else
-          puts verify_result
-          puts "hello"
-          status = 'check openssl verify(1)' 
-          success = false
-        end
       end
-      puts verify_result
+      puts verify_res
       return success 
     end
 

@@ -92,22 +92,21 @@ module Gemini
     def send_request(uri)
       ## check ssl contexts, for sockets and urls
       self.socket.connect()
-      uri = "#{uri}/"
-      uri.gsub!(/\/+/,"/")
+      puts "send request"
       puts uri
-      self.socket.puts "gemini://#{uri}\r\n"
+      self.socket.puts "gemini://#{uri}/\r\n"
       data = self.socket.readlines
       header = data.slice!(0)
       content = data
       return header, content
     end
     
-    
     def grab_gemsite(uri, path, port)
+      puts "grabgem"
+      puts uri.chomp('/')
       status = self.establish_connection( uri.chomp('/'), port )
       if status
         path = uri+'/'+path
-        path.gsub!(/\/+/,"/")
         puts path
         return self._grab(path)
       else
@@ -118,8 +117,8 @@ module Gemini
     
     def _grab(fulluri)
       content = {}
-      fulluri.gsub!(/\/+/,"/")
-      fulluri.sub!("'","")
+      puts fulluri
+      puts "fulluri"
       puts fulluri
       content[:header], content[:data] = self.send_request("#{fulluri}")
       begin 
@@ -133,20 +132,16 @@ module Gemini
       when 20..29
         return content
       when 30..31
-        data.gsub!(/\/+/,"/")
-        data.sub!("'","")
+        data.gsub!(/'/,"")
+        puts "30..31"
         puts data
         return self._grab(data)
       when 50..51
-        30..31
-        data.gsub!(/\/+/,"/")
-        data.sub!("'","")
+        data.sub!("gemini://","").gsub!(/\/+/,"/").gsub!(/'/,"")
+        puts "50..51"
         puts data
-        return self._grab(data.chomp('/'))
+        return self._grab(data)
       else
-        puts data
-        puts status
-        puts content
         content[:data] = ["ERROR"]
       end
       return content
