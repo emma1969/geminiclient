@@ -57,10 +57,13 @@ module Gemini
         if verify_result == 0
           success = true
         else
+          puts verify_result
+          puts "hello"
           status = 'check openssl verify(1)' 
           success = false
         end
       end
+      puts verify_result
       return success 
     end
 

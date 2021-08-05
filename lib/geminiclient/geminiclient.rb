@@ -11,6 +11,7 @@ module Gemini
     
     def initialize(tofu_path='/root/.gemini/tofudb.yml', use_tofu=true)
       self.ssl_context = OpenSSL::SSL::SSLContext.new
+      self.ssl_context.ca_file = "/Users/david/Documents/Certificates.pem"
       self.use_tofu = use_tofu
       if use_tofu
         self.ssl_context.verify_mode = OpenSSL::SSL::VERIFY_NONE
@@ -91,7 +92,10 @@ module Gemini
     def send_request(uri)
       ## check ssl contexts, for sockets and urls
       self.socket.connect()
-      self.socket.puts "gemini://#{uri}/\r\n"
+      uri = "#{uri}/"
+      uri.gsub!(/\/+/,"/")
+      puts uri
+      self.socket.puts "gemini://#{uri}\r\n"
       data = self.socket.readlines
       header = data.slice!(0)
       content = data
@@ -103,6 +107,8 @@ module Gemini
       status = self.establish_connection( uri.chomp('/'), port )
       if status
         path = uri+'/'+path
+        path.gsub!(/\/+/,"/")
+        puts path
         return self._grab(path)
       else
         return {"data": ["connection failed"]}
@@ -110,8 +116,11 @@ module Gemini
     end
     
     
-    def _grab( fulluri)
+    def _grab(fulluri)
       content = {}
+      fulluri.gsub!(/\/+/,"/")
+      fulluri.sub!("'","")
+      puts fulluri
       content[:header], content[:data] = self.send_request("#{fulluri}")
       begin 
         check = content[:header].split(' ')
@@ -124,8 +133,20 @@ module Gemini
       when 20..29
         return content
       when 30..31
+        data.gsub!(/\/+/,"/")
+        data.sub!("'","")
+        puts data
         return self._grab(data)
+      when 50..51
+        30..31
+        data.gsub!(/\/+/,"/")
+        data.sub!("'","")
+        puts data
+        return self._grab(data.chomp('/'))
       else
+        puts data
+        puts status
+        puts content
         content[:data] = ["ERROR"]
       end
       return content
