@@ -81,7 +81,7 @@ module Gemini
       return "pee"
     end
 
-    def verify_function(uri, cert)
+    def verify_function(uri, cert, method(:verify))
       puts "verify function"
       puts cert.public_key.to_s
       puts cert.not_before

@@ -147,61 +147,6 @@ module Gemini
       return content
     end
     
-    def check_header(header)
-      header_bits = header.split(' ')
-      status = header_bits[0].to_i()
-      header_hash = {}
-      header_hash[:status_value] = status
-      case status
-      when 10
-        header_hash[:status_text] = 'INPUT'
-      when 11
-        header_hash[:status_text] = 'SENSITIVE INPUT'
-      when 20..29
-        header_hash[:status_text] = 'SUCCESS'
-      when 30
-        header_hash[:status_text] = 'REDIRECT - TEMPORARY'
-      when 31
-        header_hash[:status_text] = 'REDIRECT - PERMANENT'
-      when 40
-        header_hash[:status_text] = 'TEMPORARY FAILURE'
-      when 41
-        header_hash[:status_text] = 'SERVER UNAVAILABLE'
-      when 42
-        header_hash[:status_text] = 'CGI ERROR'
-      when 43
-        header_hash[:status_text] = 'PROXY ERROR'
-      when 44
-        header_hash[:status_text] = 'SLOW DOWN'
-      when 50
-        header_hash[:status_text] = 'PERMANENT FAILURE'
-      when 52
-        header_hash[:status_text] = 'GONE'
-      when 53
-        header_hash[:status_text] = 'PROXY REQUEST REFUSED'
-      when 59
-        header_hash[:status_text] = 'BAD REQUEST'
-      when 60
-        header_hash[:status_text] = 'CLIENT CERTIFICATE REQUIRED'
-      when 61
-        header_hash[:status_text] = 'CERTIFICATE NOT AURTHORISED'
-      when 62
-        header_hash[:status_text] = 'CERTIFICATE NOT VALID'
-      else
-        header_hash[:status_text] = 'UNKNOWN STATUS CODE'
-      end
-      if header_bits.length > 1
-        mime = header_bits[1].downcase.chomp(';')
-        header_hash[:mime] = mime
-        if mime == 'text/gemini'
-          if header_bits.length > 2
-            header_hash[:langs] = header_bits[2].split('=')[1].split(',')
-          else
-            header_hash[:langs] = ['UTF-8']
-          end
-        end
-      end
-      return header_hash
-    end
+    
   end
 end
