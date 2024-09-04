@@ -74,7 +74,9 @@ module Gemini
     
     def establish_connection(uri, port)
       tcp_socket = TCPSocket.new(uri, port)
-      self.socket = OpenSSL::SSL::SSLSocket.new(tcp_socket, self.ssl_context)
+      #self.socket = OpenSSL::SSL::SSLSocket.new(tcp_socket,self.ssl_context)
+      #the ssl context is causing an issue
+      self.socket = OpenSSL::SSL::SSLSocket.new(tcp_socket)
       self.socket.connect
       cert = self.socket.peer_cert
       if use_tofu

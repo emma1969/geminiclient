@@ -5,7 +5,7 @@ module Gemini
     attr_accessor :DB, :path
     
     def initialize(path)
-      if File.exists? path
+      if File.exist? path
         self.DB = YAML.load_file(path)
       else
         self.DB = {}
@@ -81,7 +81,7 @@ module Gemini
       return "pee"
     end
 
-    def verify_function(uri, cert, method(:verify))
+    def verify_function(uri, cert, method)
       puts "verify function"
       puts cert.public_key.to_s
       puts cert.not_before
