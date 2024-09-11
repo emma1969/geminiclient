@@ -10,16 +10,16 @@ module Gemini
     attr_accessor :tofu_db, :document, :ssl_context, :socket, :cert, :ca_file_path, :use_tofu
     
     def initialize(tofu_path='/root/.gemini/tofudb.yml', use_tofu=true)
-      self.ssl_context = OpenSSL::SSL::SSLContext.new
-      self.ssl_context.ca_file = "/Users/david/Documents/Certificates.pem"
-      self.use_tofu = use_tofu
+      @ssl_context = OpenSSL::SSL::SSLContext.new
+      @ssl_context.ca_file = "/Users/david/Documents/Certificates.pem"
+      @use_tofu = use_tofu
       if use_tofu
-        self.ssl_context.verify_mode = OpenSSL::SSL::VERIFY_NONE
+        @ssl_context.verify_mode = OpenSSL::SSL::VERIFY_NONE
       end
-      self.socket = nil
-      self.cert = nil
-      self.tofu_db = Gemini::TofuDB.new tofu_path
-      self.use_tofu
+      @socket = nil
+      @cert = nil
+      @tofu_db = Gemini::TofuDB.new tofu_path
+      @use_tofu
     end
     
     
@@ -28,10 +28,10 @@ module Gemini
       root_ca = OpenSSL::X509::Certificate.new
       root_ca.version = 2
       root_ca.serial = 1
-      root_ca.subject = OpenSSL::X509::Name.parse "/DC=#{self.cdc[0]}/DC=#{self.cdc[1]}/CN=#{self.cn}"
+      root_ca.subject = OpenSSL::X509::Name.parse "/DC=#{@cdc[0]}/DC=#{@cdc[1]}/CN=#{@cn}"
       root_ca.issuer = root_ca.subject
       root_ca.not_before = Time.now
-      root_ca.not_after = root_ca.not_before + self.ca_length
+      root_ca.not_after = root_ca.not_before + @ca_length
       ef = OpenSSL::X509::ExtensionFactory.new
       ef.subject_certificate = root_ca
       ef.issuer_certificate = root_ca
@@ -40,7 +40,7 @@ module Gemini
       root_ca.add_extension(ef.create_extension("subjectKeyIdentifier","hash",false))
       root_ca.add_extension(ef.create_extension("authorityKeyIdentifier","keyid:always",false))
       root_ca.sign(root_key, OpenSSL::Digest::SHA256.new)
-      self.root_ca = root_ca
+      @root_ca = root_ca
       return true
     end
     
@@ -74,14 +74,14 @@ module Gemini
     
     def establish_connection(uri, port)
       tcp_socket = TCPSocket.new(uri, port)
-      #self.socket = OpenSSL::SSL::SSLSocket.new(tcp_socket,self.ssl_context)
+      #@socket = OpenSSL::SSL::SSLSocket.new(tcp_socket,@ssl_context)
       #the ssl context is causing an issue
-      self.socket = OpenSSL::SSL::SSLSocket.new(tcp_socket)
-      self.socket.connect
-      cert = self.socket.peer_cert
+      @socket = OpenSSL::SSL::SSLSocket.new(tcp_socket)
+      @socket.connect
+      cert = @socket.peer_cert
       if use_tofu
-        if self.tofu_db.check_cert(uri,cert, self.socket)
-          self.cert = self.socket.peer_cert
+        if @tofu_db.check_cert(uri,cert, @socket)
+          @cert = @socket.peer_cert
           return true
         else
           puts 'SSL Error'
@@ -93,11 +93,11 @@ module Gemini
     
     def send_request(uri)
       ## check ssl contexts, for sockets and urls
-      self.socket.connect()
+      @socket.connect()
       puts "send request"
       puts uri
-      self.socket.puts "gemini://#{uri}/\r\n"
-      data = self.socket.readlines
+      @socket.puts "gemini://#{uri}/\r\n"
+      data = @socket.readlines
       header = data.slice!(0)
       content = data
       return header, content

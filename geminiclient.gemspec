@@ -6,7 +6,7 @@ Gem::Specification.new do |s|
   s.description = "gemini interface ruby"
   s.authors     = ["david"]
   s.email       = 'admin@xmanifesto.club'
-  s.files       = ["lib/geminiclient.rb","lib/geminiclient/geminiclient.rb", "lib/geminiclient/tofudb.rb"]
+  s.files       = ["lib/geminiclient.rb","lib/geminiclient/geminiclient.rb", "lib/geminiclient/tofudb.rb", "lib/geminiclient/Client.rb", "lib/geminiclient/Connection.rb", "lib/geminiclient/Message.rb", "lib/geminiclient/CertManager.rb"  ]
   s.homepage    =
     'https://xmanifesto.club'
   s.license       = 'Unlicense'

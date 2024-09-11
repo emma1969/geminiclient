@@ -12,6 +12,7 @@ gem install ./geminiclient-0.0.0.gem
 simple test script:
 ```
 require 'geminiclient'
-gemcli = Gemini::GeminiClient.new
-x = gemcli.grab_gemsite('geminiprotocol.net', '/', 1965)
+gemcli = Gemini::Client.new
+puts gemcli.grab_gemsite("geminiprotocol.net", "/", 1965, nil)
+
 ```
