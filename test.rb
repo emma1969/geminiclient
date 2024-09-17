@@ -1,3 +1,3 @@
 require 'geminiclient'
-gemcli = Gemini::Client.new
-puts gemcli.grab_gemsite("geminiprotocol.net", "/", 1965, nil)
+gemcli = Gemini::Client.new "geminiprotocol.net", 1965
+puts gemcli.get("/")

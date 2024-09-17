@@ -38,15 +38,10 @@ module Gemini
       verify_res = ssl_socket.verify_result
       success = false
       if (verify_res == 18 || verify_res == 19) || verify_res == 0
-        puts ssl_socket.verify_result
-        puts "Subject #{subjectbits['CN']}"
-        puts "Issuer #{issuerbits['CN']}"
         indb = self.check_tofu(uri, cert)
         if indb
           success = true
-          puts 'indb'
         else
-          puts 'adding to db'
           self.add_tofu(uri, cert)
           success = true
         end
@@ -56,7 +51,6 @@ module Gemini
           status = 'rejected by tofudb'
         end
       end
-      puts verify_res
       return success 
     end
 

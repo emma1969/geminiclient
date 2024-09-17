@@ -20,8 +20,14 @@ module Gemini
         end
       end
 
-      
-
-     
+      def send_request(uri)
+        @socket.puts "gemini://#{uri}/\r\n"
+        data = @socket.readlines
+        header = data.slice!(0)
+        content = data
+        return header, content
+      end
     end
+
+    
 end
