@@ -6,22 +6,22 @@ module Gemini
     
     def initialize(path)
       if File.exist? path
-        self.DB = YAML.load_file(path)
+        @DB = YAML.load_file(path, permitted_classes: [Time, Symbol])
       else
-        self.DB = {}
+        @DB = {}
       end
-      self.path = path
+      @path = path
     end
     
     def check_tofu(uri, cert)
       now = DateTime.now.to_time
       expires = cert.not_after
       valid_on = cert.not_before
-      if self.DB.key? uri and now < expires
-        if self.DB[uri][:public_key] == cert.public_key.to_s and self.DB[uri][:expires] == expires
+      if @DB.key? uri and now < expires
+        if @DB[uri][:public_key] == cert.public_key.to_s and @DB[uri][:expires] == expires
           return true
         else
-          if self.DB[uri][:expires] < now and expires > self.DB[uri][:expires]
+          if @DB[uri][:expires] < now and expires > @DB[uri][:expires]
             return self.update_tofu(uri, cert)
           else
             return false
@@ -55,11 +55,12 @@ module Gemini
     end
 
     def update_tofu(uri, cert)
-      self.DB[uri] = {
+      @DB[uri] = {
       :public_key => cert.public_key.to_s,
       :valid_on => cert.not_before,
       :expires => cert.not_after
       }
+      self.write
       return self.verify_function.call uri, cert
     end
   
@@ -67,12 +68,12 @@ module Gemini
       now = DateTime.now.to_time
       expires = cert.not_after
       valid_on = cert.not_before
-      self.DB[uri] = {
+      @DB[uri] = {
       :public_key => cert.public_key.to_s, 
       :valid_on => cert.not_before,
       :expires => cert.not_after
       }
-      return "pee"
+      self.write
     end
 
     def verify_function(uri, cert, method)
@@ -84,12 +85,13 @@ module Gemini
     end
 
     def remove_tofu(uri)
-      self.DB.delete uri
+      @DB.delete uri
+      self.write 
     end
 
-    def close
-      File.open(self.path, 'w') do |yam|
-        YAML.dump(self.DB,yam)
+    def write
+      File.open(@path, 'w') do |yam|
+        YAML.dump(@DB,yam)
       end
     end
 
